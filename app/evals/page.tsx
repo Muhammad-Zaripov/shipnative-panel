@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import Shell from "@/components/Shell";
 import { Button, Card, ErrorBox, Pill } from "@/components/ui";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, apiImage } from "@/lib/api";
 import { date, usd } from "@/lib/format";
 import type { EvalCase, EvalCaseResult, EvalRun } from "@/lib/types";
 
@@ -21,7 +21,32 @@ const caseStatus: Record<EvalCaseResult["status"], string> = {
 // site.ts values come quoted ("bold"); show them bare.
 const bare = (v?: string) => (v ?? "").replace(/"/g, "");
 
-function CaseCard({ c, title }: { c: EvalCaseResult; title?: string }) {
+/** A screenshot loaded with the admin token (img tags can't send it). */
+function Shot({ path, alt, className }: { path: string; alt: string; className: string }) {
+  const [url, setUrl] = useState("");
+  useEffect(() => {
+    let revoked = false;
+    let made = "";
+    apiImage(path)
+      .then((u) => {
+        made = u;
+        if (!revoked) setUrl(u);
+        else URL.revokeObjectURL(u);
+      })
+      .catch(() => undefined);
+    return () => {
+      revoked = true;
+      if (made) URL.revokeObjectURL(made);
+    };
+  }, [path]);
+  // eslint-disable-next-line @next/next/no-img-element -- object URL, no optimizer in a static export
+  return url ? <img src={url} alt={alt} className={className} /> : <div className={`${className} bg-slate-100`} />;
+}
+
+const scoreTone = (n: number) => (n >= 7 ? "green" : n >= 5 ? "amber" : "red");
+
+function CaseCard({ c, title, runId }: { c: EvalCaseResult; title?: string; runId: string }) {
+  const [open, setOpen] = useState(false);
   const tone = c.status === "error" || (c.status === "done" && !c.ok) ? "red" : c.status === "done" ? "green" : "amber";
   return (
     <Card className="flex flex-col gap-2">
@@ -32,6 +57,38 @@ function CaseCard({ c, title }: { c: EvalCaseResult; title?: string }) {
         </div>
         <Pill tone={tone}>{c.status === "done" && !c.ok ? "Qurilmadi" : caseStatus[c.status]}</Pill>
       </div>
+      {c.shots && (
+        <button type="button" onClick={() => setOpen(!open)} className="flex gap-2 text-left" title="Kattalashtirish">
+          <Shot
+            path={`/admin/evals/${runId}/${c.name}/desktop.jpg`}
+            alt="desktop"
+            className={`w-3/4 rounded border border-slate-200 object-cover object-top ${open ? "" : "h-56"}`}
+          />
+          <Shot
+            path={`/admin/evals/${runId}/${c.name}/mobile.jpg`}
+            alt="mobile"
+            className={`w-1/4 rounded border border-slate-200 object-cover object-top ${open ? "" : "h-56"}`}
+          />
+        </button>
+      )}
+      {c.score ? (
+        <div className="text-sm">
+          <div className="flex flex-wrap gap-1.5">
+            <Pill tone={scoreTone(c.score)}>Sifat: {c.score}/10</Pill>
+            <Pill tone={scoreTone(c.distinct ?? 0)}>O&apos;ziga xoslik: {c.distinct}/10</Pill>
+          </div>
+          <p className="mt-2 text-slate-600">{c.verdict}</p>
+          {c.issues?.length ? (
+            <ul className="mt-1 list-disc pl-5 text-xs text-slate-500">
+              {c.issues.map((i) => (
+                <li key={i}>{i}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : (
+        c.verdict && <p className="text-xs text-amber-700">{c.verdict}</p>
+      )}
       {c.status === "done" && (
         <div className="flex flex-wrap gap-1.5 text-xs">
           {c.style && <Pill>uslub: {bare(c.style)}</Pill>}
@@ -155,6 +212,9 @@ export default function EvalsPage() {
       {runs.map((r) => {
         const done = r.cases.filter((c) => c.status === "done" || c.status === "error").length;
         const firstTry = r.cases.filter((c) => c.first_try).length;
+        const scored = r.cases.filter((c) => c.score);
+        const avg = (k: "score" | "distinct") =>
+          scored.length ? (scored.reduce((sum, c) => sum + (c[k] ?? 0), 0) / scored.length).toFixed(1) : "";
         return (
           <section key={r.id} className="mb-8">
             <div className="mb-3 flex flex-wrap items-baseline gap-x-4 gap-y-1">
@@ -164,11 +224,12 @@ export default function EvalsPage() {
               </Pill>
               <span className="text-sm text-slate-500">
                 {r.prompt_version} · 1-urinishda: {firstTry}/{r.cases.length} · jami {usd(r.cost_micros)}
+                {scored.length > 0 && ` · o'rtacha sifat ${avg("score")}, o'ziga xoslik ${avg("distinct")}`}
               </span>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {r.cases.map((c) => (
-                <CaseCard key={c.name} c={c} title={titles[c.name]} />
+                <CaseCard key={c.name} c={c} title={titles[c.name]} runId={r.id} />
               ))}
             </div>
           </section>

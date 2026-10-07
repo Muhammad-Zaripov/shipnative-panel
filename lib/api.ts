@@ -111,3 +111,13 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
   }
   return parse<T>(res);
 }
+
+// apiImage loads an authorised image (e.g. an eval screenshot) as an object URL for <img>.
+// The caller revokes it when done.
+export async function apiImage(path: string): Promise<string> {
+  const send = () => fetch(`${API}${path}`, { headers: { Authorization: `Bearer ${load()?.access ?? ""}` } });
+  let res = await send();
+  if (res.status === 401 && (await refresh())) res = await send();
+  if (!res.ok) throw new ApiError(res.status, String(res.status), res.statusText);
+  return URL.createObjectURL(await res.blob());
+}

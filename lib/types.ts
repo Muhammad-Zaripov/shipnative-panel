@@ -71,6 +71,12 @@ export type EvalCaseResult = {
   effects?: string;
   preview_url?: string;
   error?: string;
+  score?: number;
+  distinct?: number;
+  verdict?: string;
+  issues?: string[];
+  strengths?: string[];
+  shots?: boolean;
 };
 
 export type EvalRun = {
