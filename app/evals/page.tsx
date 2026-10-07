@@ -128,7 +128,8 @@ export default function EvalsPage() {
   const load = useCallback(async () => {
     try {
       const res = await api<{ cases: EvalCase[]; runs: EvalRun[] }>("/admin/evals");
-      setCases(res.cases);
+      // Cases with photos show the kit at its best: they come first.
+      setCases([...res.cases].sort((a, b) => b.images - a.images || a.name.localeCompare(b.name)));
       setRuns(res.runs);
     } catch (e) {
       setError((e as Error).message);
@@ -202,7 +203,9 @@ export default function EvalsPage() {
                 <span className="font-medium">{c.title}</span>{" "}
                 <span className="text-xs uppercase text-slate-400">{c.language}</span>
                 <span className="block text-xs text-slate-500">{c.summary}</span>
-                <span className="block text-xs text-slate-400">{c.facts} ta fakt</span>
+                <span className="block text-xs text-slate-400">
+                  {c.facts} ta fakt{c.images > 0 && ` · 🖼 logo va ${c.images - 1} ta rasm`}
+                </span>
               </span>
             </label>
           ))}

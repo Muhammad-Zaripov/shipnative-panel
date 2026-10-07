@@ -56,7 +56,7 @@ export type AdminRun = {
 
 export type Page<T> = { items: T[]; next_cursor: string | null };
 
-export type EvalCase = { name: string; title: string; summary: string; language: string; facts: number };
+export type EvalCase = { name: string; title: string; summary: string; language: string; facts: number; images: number };
 
 export type EvalCaseResult = {
   name: string;
