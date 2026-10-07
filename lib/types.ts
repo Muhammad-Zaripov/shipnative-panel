@@ -55,3 +55,30 @@ export type AdminRun = {
 };
 
 export type Page<T> = { items: T[]; next_cursor: string | null };
+
+export type EvalCase = { name: string; title: string; summary: string; language: string; facts: number };
+
+export type EvalCaseResult = {
+  name: string;
+  status: "pending" | "running" | "done" | "error";
+  ok: boolean;
+  first_try: boolean;
+  fixes: number;
+  cost_micros: number;
+  duration_ms: number;
+  style?: string;
+  hero?: string;
+  effects?: string;
+  preview_url?: string;
+  error?: string;
+};
+
+export type EvalRun = {
+  id: string;
+  prompt_version: string;
+  status: "running" | "done" | "failed";
+  started_at: string;
+  finished_at: string | null;
+  cost_micros: number;
+  cases: EvalCaseResult[];
+};

@@ -11,6 +11,7 @@ const nav = [
   { href: "/users/", label: "Foydalanuvchilar", icon: "👥" },
   { href: "/projects/", label: "Loyihalar", icon: "🌐" },
   { href: "/runs/", label: "Generatsiyalar", icon: "⚙️" },
+  { href: "/evals/", label: "Sifat testi", icon: "🧪" },
 ];
 
 /** Every admin page: sidebar navigation + a login guard. */
